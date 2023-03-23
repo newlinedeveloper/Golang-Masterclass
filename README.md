@@ -330,5 +330,144 @@ func main() {
 
 ```
 
+#### Pointers
+
+```
+package main
+
+import "fmt"
+
+func zeroval(ival int) {
+    ival = 0
+}
+
+func zeroptr(iptr *int) {
+    *iptr = 0
+}
+
+func main() {
+    i := 1
+    fmt.Println("initial:", i)
+
+    zeroval(i)
+    fmt.Println("zeroval:", i)
+
+    zeroptr(&i)
+    fmt.Println("zeroptr:", i)
+
+    fmt.Println("pointer:", &i)
+}
+
+```
+
+#### Structs
+
+Go’s structs are typed collections of fields. They’re useful for grouping data together to form records.
+
+```
+package main
+
+import "fmt"
+
+type person struct {
+    name string
+    age  int
+}
+
+func newPerson(name string) *person {
+
+    p := person{name: name}
+    p.age = 42
+    return &p
+}
+
+func main() {
+
+    fmt.Println(person{"Bob", 20})
+
+    fmt.Println(person{name: "Alice", age: 30})
+
+    fmt.Println(person{name: "Fred"})
+
+    fmt.Println(&person{name: "Ann", age: 40})
+
+    fmt.Println(newPerson("Jon"))
+
+    s := person{name: "Sean", age: 50}
+    fmt.Println(s.name)
+
+    sp := &s
+    fmt.Println(sp.age)
+
+    sp.age = 51
+    fmt.Println(sp.age)
+}
+
+```
+
+#### Error Handling
+
+
+```
+package main
+
+import (
+    "errors"
+    "fmt"
+)
+
+func f1(arg int) (int, error) {
+    if arg == 42 {
+
+        return -1, errors.New("can't work with 42")
+
+    }
+
+    return arg + 3, nil
+}
+
+type argError struct {
+    arg  int
+    prob string
+}
+
+func (e *argError) Error() string {
+    return fmt.Sprintf("%d - %s", e.arg, e.prob)
+}
+
+func f2(arg int) (int, error) {
+    if arg == 42 {
+
+        return -1, &argError{arg, "can't work with it"}
+    }
+    return arg + 3, nil
+}
+
+func main() {
+
+    for _, i := range []int{7, 42} {
+        if r, e := f1(i); e != nil {
+            fmt.Println("f1 failed:", e)
+        } else {
+            fmt.Println("f1 worked:", r)
+        }
+    }
+    for _, i := range []int{7, 42} {
+        if r, e := f2(i); e != nil {
+            fmt.Println("f2 failed:", e)
+        } else {
+            fmt.Println("f2 worked:", r)
+        }
+    }
+
+    _, e := f2(42)
+    if ae, ok := e.(*argError); ok {
+        fmt.Println(ae.arg)
+        fmt.Println(ae.prob)
+    }
+}
+
+```
+
 
 
