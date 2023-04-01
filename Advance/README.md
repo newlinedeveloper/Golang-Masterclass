@@ -232,6 +232,107 @@ func main() {
 
 ```
 
+#### Create Member Model
+
+Create `member_models.go` file in `Models` folder
+
+
+
+```
+
+package models
+
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
+type Member struct {
+	Id    primitive.ObjectID `json:"id,omitempty"`
+	Name  string             `json:"name,omitempty" validate:"required"`
+	Email string             `json:"email,omitempty" validate:"required"`
+	City  string             `json:"city,omitempty" validate:"required"`
+}
+
+
+```
+
+
+#### Create Member Response struct
+
+Create `member_responses.go` file in `Responses` folder
+
+
+
+```
+
+package responses
+
+type MemberResponse struct {
+	Status  int                    `json:"status"`
+	Message string                 `json:"message"`
+	Data    map[string]interface{} `json:"data"`
+}
+
+
+```
+
+
+
+#### Create Members Api Routes
+
+Create `member_routes.go` file in `Routes` folder
+
+
+```
+
+package routes
+
+import "github.com/gorilla/mux"
+
+func MemberRoutes(router *mux.Router) {
+
+}
+
+
+
+```
+
+
+import routes to `main.go` file
+
+
+
+```
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+
+	configs "github.com/newlinedeveloper/go-api/Configs"
+
+	routes "github.com/newlinedeveloper/go-api/Routes"
+
+	"github.com/gorilla/mux"
+)
+
+func main() {
+	router := mux.NewRouter()
+
+	// MongoDB Connection
+	configs.ConnectDB()
+
+    // Imported Members routes
+	routes.MemberRoutes(router)
+
+	fmt.Print("Server is running on port 8000 !!!!")
+	log.Fatal(http.ListenAndServe(":8000", router))
+}
+
+
+```
+
+
+
 
 
 
