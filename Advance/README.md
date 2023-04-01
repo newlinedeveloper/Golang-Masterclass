@@ -358,9 +358,12 @@ import (
 	configs "github.com/newlinedeveloper/go-api/Configs"
 	models "github.com/newlinedeveloper/go-api/Models"
 	responses "github.com/newlinedeveloper/go-api/Responses"
+
+	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
-var userCollection *mongo.Collection = configs.GetCollection(configs.DB, "users")
+var memberCollection *mongo.Collection = configs.GetCollection(configs.DB, "members")
 var validate = validator.New()
 
 func CreateMember() http.HandlerFunc {
@@ -391,7 +394,7 @@ func CreateMember() http.HandlerFunc {
 			Email: member.Email,
 			City:  member.City,
 		}
-		result, err := userCollection.InsertOne(ctx, newUser)
+		result, err := memberCollection.InsertOne(ctx, newUser)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
@@ -404,8 +407,6 @@ func CreateMember() http.HandlerFunc {
 		json.NewEncoder(rw).Encode(response)
 	}
 }
-
-
 
 ```
 
@@ -445,7 +446,7 @@ func GetMember() http.HandlerFunc {
 
 		objId, _ := primitive.ObjectIDFromHex(userId)
 
-		err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
+		err := memberCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
@@ -511,7 +512,6 @@ func GetAllMembers() http.HandlerFunc {
 
 	}
 }
-
 
 ```
 
@@ -586,6 +586,7 @@ func UpdateMember() http.HandlerFunc {
 		response := responses.MemberResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": updatedMember}}
 		json.NewEncoder(rw).Encode(response)
 
+
 	}
 }
 
@@ -599,6 +600,55 @@ router.HandleFunc("/member/{id}", controllers.UpdateMember()).Methods("PUT")
 
 ```
 
+
+
+
+Create `DeleteMember` function
+
+
+```
+func DeleteMember() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		params := mux.Vars(r)
+		userId := params["id"]
+		defer cancel()
+
+		objId, _ := primitive.ObjectIDFromHex(userId)
+
+		result, err := memberCollection.DeleteOne(ctx, bson.M{"id": objId})
+
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+			json.NewEncoder(rw).Encode(response)
+			return
+		}
+
+		if result.DeletedCount < 1 {
+			rw.WriteHeader(http.StatusNotFound)
+			response := responses.MemberResponse{Status: http.StatusNotFound, Message: "error", Data: map[string]interface{}{"data": "Member Id Not found"}}
+			json.NewEncoder(rw).Encode(response)
+			return
+
+		}
+
+		rw.WriteHeader(http.StatusOK)
+		response := responses.MemberResponse{Status: http.StatusOK, Message: "Success", Data: map[string]interface{}{"data": "Member deleted successfully"}}
+		json.NewEncoder(rw).Encode(response)
+
+	}
+}
+
+```
+
+update Member Routes `member_routes.go` file
+
+
+```
+router.HandleFunc("/member/{id}", controllers.UpdateMember()).Methods("PUT")
+
+```
 
 
 

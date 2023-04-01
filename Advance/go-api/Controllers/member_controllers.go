@@ -183,3 +183,36 @@ func UpdateMember() http.HandlerFunc {
 
 	}
 }
+
+func DeleteMember() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		params := mux.Vars(r)
+		userId := params["id"]
+		defer cancel()
+
+		objId, _ := primitive.ObjectIDFromHex(userId)
+
+		result, err := memberCollection.DeleteOne(ctx, bson.M{"id": objId})
+
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+			json.NewEncoder(rw).Encode(response)
+			return
+		}
+
+		if result.DeletedCount < 1 {
+			rw.WriteHeader(http.StatusNotFound)
+			response := responses.MemberResponse{Status: http.StatusNotFound, Message: "error", Data: map[string]interface{}{"data": "Member Id Not found"}}
+			json.NewEncoder(rw).Encode(response)
+			return
+
+		}
+
+		rw.WriteHeader(http.StatusOK)
+		response := responses.MemberResponse{Status: http.StatusOK, Message: "Success", Data: map[string]interface{}{"data": "Member deleted successfully"}}
+		json.NewEncoder(rw).Encode(response)
+
+	}
+}
