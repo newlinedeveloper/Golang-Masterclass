@@ -1,10 +1,12 @@
 # Golang-Masterclass
 Golang Masterclass - Basic and Advanced Concepts
 
-### prerequisite
+### prerequisites
+
+Go installation & Configuration
 
 ```
-https://go.dev/doc/install
+Please check this link https://go.dev/doc/install
 
 go version
 
@@ -38,7 +40,7 @@ func main() {
 
 
 
-### Topics
+### Go Basic Topics
 
 
 #### Values
@@ -95,6 +97,33 @@ func main() {
 
 
 #### Constants : 
+
+Go supports constants of character, string, boolean, and numeric values.
+
+```
+package main
+
+import (
+    "fmt"
+    "math"
+)
+
+const s string = "constant"
+
+func main() {
+    fmt.Println(s)
+
+    const n = 500000000
+
+    const d = 3e20 / n
+    fmt.Println(d)
+
+    fmt.Println(int64(d))
+
+    fmt.Println(math.Sin(n))
+}
+
+```
 
 
 #### For loop :
@@ -255,6 +284,7 @@ func main() {
 ```
 
 #### Maps : 
+
 Maps are Go’s built-in associative data type (sometimes called hashes or dicts in other languages)
 
 ```
@@ -407,6 +437,8 @@ func main() {
 
 #### Error Handling
 
+In Go, it's common to handle errors by returning them as a separate value from the function. This is different from languages like Java and Ruby, which use exceptions, and C, which sometimes uses a single result/error value. Go's approach makes it clear which functions can return errors and allows you to use the same code to handle errors as you would for other tasks.
+
 
 ```
 package main
@@ -418,54 +450,40 @@ import (
 
 func f1(arg int) (int, error) {
     if arg == 42 {
-
         return -1, errors.New("can't work with 42")
-
     }
-
     return arg + 3, nil
-}
-
-type argError struct {
-    arg  int
-    prob string
-}
-
-func (e *argError) Error() string {
-    return fmt.Sprintf("%d - %s", e.arg, e.prob)
 }
 
 func f2(arg int) (int, error) {
     if arg == 42 {
-
-        return -1, &argError{arg, "can't work with it"}
+        return -1, fmt.Errorf("%d - can't work with it", arg)
     }
     return arg + 3, nil
 }
 
 func main() {
-
     for _, i := range []int{7, 42} {
-        if r, e := f1(i); e != nil {
-            fmt.Println("f1 failed:", e)
+        if r, err := f1(i); err != nil {
+            fmt.Println("f1 failed:", err)
         } else {
             fmt.Println("f1 worked:", r)
         }
     }
+
     for _, i := range []int{7, 42} {
-        if r, e := f2(i); e != nil {
-            fmt.Println("f2 failed:", e)
+        if r, err := f2(i); err != nil {
+            fmt.Println("f2 failed:", err)
         } else {
             fmt.Println("f2 worked:", r)
         }
     }
 
-    _, e := f2(42)
-    if ae, ok := e.(*argError); ok {
-        fmt.Println(ae.arg)
-        fmt.Println(ae.prob)
+    if _, err := f2(42); err != nil {
+        fmt.Println(err)
     }
 }
+
 
 ```
 
