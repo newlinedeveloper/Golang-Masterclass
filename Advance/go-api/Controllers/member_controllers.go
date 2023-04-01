@@ -123,3 +123,63 @@ func GetAllMembers() http.HandlerFunc {
 
 	}
 }
+
+func UpdateMember() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		params := mux.Vars(r)
+		userId := params["id"]
+		var user models.Member
+
+		defer cancel()
+
+		objId, _ := primitive.ObjectIDFromHex(userId)
+
+		//validate the request body
+		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			response := responses.MemberResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+			json.NewEncoder(rw).Encode(response)
+			return
+		}
+
+		// use the validator library to validate required fields
+		if validationErr := validate.Struct(&user); validationErr != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			response := responses.MemberResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": validationErr.Error()}}
+			json.NewEncoder(rw).Encode(response)
+			return
+		}
+
+		update := bson.M{"name": user.Name, "email": user.Email, "city": user.City}
+
+		result, err := memberCollection.UpdateOne(ctx, bson.M{"id": objId}, bson.M{"$set": update})
+
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+			json.NewEncoder(rw).Encode(response)
+			return
+		}
+
+		// Get Updated member details
+		var updatedMember models.Member
+
+		if result.MatchedCount == 1 {
+			err := memberCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&updatedMember)
+
+			if err != nil {
+				rw.WriteHeader(http.StatusInternalServerError)
+				response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+				json.NewEncoder(rw).Encode(response)
+				return
+			}
+
+		}
+
+		rw.WriteHeader(http.StatusOK)
+		response := responses.MemberResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": updatedMember}}
+		json.NewEncoder(rw).Encode(response)
+
+	}
+}
