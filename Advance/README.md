@@ -473,6 +473,46 @@ router.HandleFunc("/member/{id}", controllers.GetMember()).Methods("GET")
 
 
 
+Create `GetAllMembers` function
+
+
+```
+func GetMember() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		params := mux.Vars(r)
+		userId := params["id"]
+		var user models.Member
+
+		defer cancel()
+
+		objId, _ := primitive.ObjectIDFromHex(userId)
+
+		err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+			json.NewEncoder(rw).Encode(response)
+			return
+		}
+
+		rw.WriteHeader(http.StatusOK)
+		response := responses.MemberResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": user}}
+		json.NewEncoder(rw).Encode(response)
+
+	}
+}
+
+```
+
+update Member Routes `member_routes.go` file
+
+
+```
+router.HandleFunc("/member/{id}", controllers.GetMember()).Methods("GET")
+
+```
+
 
 
 

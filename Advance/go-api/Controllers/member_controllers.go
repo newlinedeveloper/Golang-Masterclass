@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var userCollection *mongo.Collection = configs.GetCollection(configs.DB, "users")
+var memberCollection *mongo.Collection = configs.GetCollection(configs.DB, "members")
 var validate = validator.New()
 
 func CreateMember() http.HandlerFunc {
@@ -49,7 +49,7 @@ func CreateMember() http.HandlerFunc {
 			Email: member.Email,
 			City:  member.City,
 		}
-		result, err := userCollection.InsertOne(ctx, newUser)
+		result, err := memberCollection.InsertOne(ctx, newUser)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
@@ -74,7 +74,7 @@ func GetMember() http.HandlerFunc {
 
 		objId, _ := primitive.ObjectIDFromHex(userId)
 
-		err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
+		err := memberCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
@@ -84,6 +84,41 @@ func GetMember() http.HandlerFunc {
 
 		rw.WriteHeader(http.StatusOK)
 		response := responses.MemberResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": user}}
+		json.NewEncoder(rw).Encode(response)
+
+	}
+}
+
+func GetAllMembers() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		var members []models.Member
+		defer cancel()
+
+		results, err := memberCollection.Find(ctx, bson.M{})
+
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+			json.NewEncoder(rw).Encode(response)
+			return
+		}
+
+		// Reading from the db in an optimal way
+		defer results.Close(ctx)
+		for results.Next(ctx) {
+			var singleUser models.Member
+			if err = results.Decode(&singleUser); err != nil {
+				rw.WriteHeader(http.StatusInternalServerError)
+				response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+				json.NewEncoder(rw).Encode(response)
+			}
+			members = append(members, singleUser)
+
+		}
+
+		rw.WriteHeader(http.StatusOK)
+		response := responses.MemberResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": members}}
 		json.NewEncoder(rw).Encode(response)
 
 	}
