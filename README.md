@@ -489,3 +489,17 @@ func main() {
 
 
 
+#### Cross platform compilation
+
+
+```
+go build
+
+env GOOS=target-OS GOARCH=target-architecture go build .
+
+env GOOS=windows GOARCH=amd64 go build .
+
+```
+
+
+
