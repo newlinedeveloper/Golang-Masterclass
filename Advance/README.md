@@ -477,18 +477,14 @@ Create `GetAllMembers` function
 
 
 ```
-func GetMember() http.HandlerFunc {
+func GetAllMembers() http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		params := mux.Vars(r)
-		userId := params["id"]
-		var user models.Member
-
+		var members []models.Member
 		defer cancel()
 
-		objId, _ := primitive.ObjectIDFromHex(userId)
+		results, err := memberCollection.Find(ctx, bson.M{})
 
-		err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
@@ -496,12 +492,26 @@ func GetMember() http.HandlerFunc {
 			return
 		}
 
+		// Reading from the db in an optimal way
+		defer results.Close(ctx)
+		for results.Next(ctx) {
+			var singleUser models.Member
+			if err = results.Decode(&singleUser); err != nil {
+				rw.WriteHeader(http.StatusInternalServerError)
+				response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+				json.NewEncoder(rw).Encode(response)
+			}
+			members = append(members, singleUser)
+
+		}
+
 		rw.WriteHeader(http.StatusOK)
-		response := responses.MemberResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": user}}
+		response := responses.MemberResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": members}}
 		json.NewEncoder(rw).Encode(response)
 
 	}
 }
+
 
 ```
 
@@ -509,7 +519,7 @@ update Member Routes `member_routes.go` file
 
 
 ```
-router.HandleFunc("/member/{id}", controllers.GetMember()).Methods("GET")
+router.HandleFunc("/members", controllers.GetAllMembers()).Methods("GET")
 
 ```
 
