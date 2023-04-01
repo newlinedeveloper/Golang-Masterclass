@@ -13,6 +13,9 @@ import (
 	configs "github.com/newlinedeveloper/go-api/Configs"
 	models "github.com/newlinedeveloper/go-api/Models"
 	responses "github.com/newlinedeveloper/go-api/Responses"
+
+	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var userCollection *mongo.Collection = configs.GetCollection(configs.DB, "users")
@@ -57,5 +60,31 @@ func CreateMember() http.HandlerFunc {
 		rw.WriteHeader(http.StatusCreated)
 		response := responses.MemberResponse{Status: http.StatusCreated, Message: "success", Data: map[string]interface{}{"data": result}}
 		json.NewEncoder(rw).Encode(response)
+	}
+}
+
+func GetMember() http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		params := mux.Vars(r)
+		userId := params["id"]
+		var user models.Member
+
+		defer cancel()
+
+		objId, _ := primitive.ObjectIDFromHex(userId)
+
+		err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			response := responses.MemberResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}}
+			json.NewEncoder(rw).Encode(response)
+			return
+		}
+
+		rw.WriteHeader(http.StatusOK)
+		response := responses.MemberResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": user}}
+		json.NewEncoder(rw).Encode(response)
+
 	}
 }
